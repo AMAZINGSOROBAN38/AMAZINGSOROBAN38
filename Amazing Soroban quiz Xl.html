@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMAZING SOROBAN Quiz</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            font-family: 'Arial', sans-serif;
+            background-color: #f0f4f8; /* Light background color */
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #007BFF; /* Blue color for the title */
+        }
+        #formContainer {
+            border: 5px solid #007BFF;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: GRAY;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+            width: 90%; /* Set a width for the form container */
+            max-width: 500px; /* Max width for larger screens */
+        }
+        input[type="text"], input[type="date"], input[type="number"], select {
+            padding: 10px;
+            font-size: 18px; /* Slightly smaller font size */
+            width: 90%; /* Full width for inputs */
+            margin-bottom: 15px; /* Increased margin for better spacing */
+            border: 1px solid #ced4da; /* Light border */
+            border-radius: 5px; /* Rounded corners */
+            transition: border-color 0.3s; /* Smooth transition for border color */
+        }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="number"]:focus, select:focus {
+            border-color: #007BFF; /* Change border color on focus */
+            outline: none; /* Remove default outline */
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 18px; /* Slightly smaller font size */
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px; /* Add margin to separate buttons */
+            transition: background-color 0.3s; /* Smooth transition for hover effect */
+            width: 50%; /* Full width for buttons */
+        }
+        button:hover {
+            background-color: #0056b3; /* Darker blue on hover */
+        }
+        #timer {
+            font-size: 20px;
+            color: red;
+            margin-bottom: 20px;
+            display: none;
+        }
+        #result {
+            margin-top: 30px;
+            font-size: 24px; /* Slightly larger font size for results */
+            color: #28a745; /* Green color for results */
+        }
+        .number {
+            display: block;
+            margin: 5px 0;
+            font-size: 50px;
+            text-align: center;
+            color: #343a40; /* Darker color for numbers */
+        }
+    </style>
+    <script>
+        let correctAnswers = 0;
+        let totalQuestions = 0; // Initialize totalQuestions to 0
+        let currentQuestion = 0;
+        let timerInterval;
+        let timeLeft = 600; // Default time in seconds (10 minutes)
+        let numbersCount = 2; // Default number of numbers in the operation
+        let level = 1; // Default level
+
+        function startQuiz() {
+            const name = document.getElementById('fullName').value;
+            const birthDate = document.getElementById('birthDate').value;
+            const state = document.getElementById('state').value;
+            const country = document.getElementById('country').value;
+            const coach = document.getElementById('coach').value;
+            const operationsCount = parseInt(document.getElementById('operationsCount').value); // Get operations count
+            const timeInput = parseInt(document.getElementById('timeInput').value); // Get time input
+            numbersCount = parseInt(document.getElementById('numbersCount').value); // Get numbers count
+            level = parseInt(document.getElementById('level').value); // Get selected level
+
+            if (!name || !birthDate || !state || !country || !coach || isNaN(operationsCount) || operationsCount <= 0 || isNaN(numbersCount) || numbersCount < 2 || numbersCount > 10 || isNaN(timeInput) || timeInput <= 0) {
+                alert("Please fill in all fields and enter valid values for operations, numbers, and time.");
+                return;
+            }
+
+            totalQuestions = operationsCount; // Set totalQuestions to the user-defined value
+            timeLeft = timeInput * 60; // Set time left based on user input (in seconds)
+            document.getElementById('formContainer').style.display = 'none';
+            document.getElementById('timer').style.display = 'block';
+            document.getElementById('userAnswer').style.display = 'block';
+            document.getElementById('submitBtn').style.display = 'block';
+            document.getElementById('endQuizBtn').style.display = 'block'; // Show end quiz button
+            generateQuestion();
+            startTimer();
+        }
+
+        function generateQuestion() {
+            const questionElement = document.getElementById('question');
+            questionElement.innerHTML = '';
+            let numbers = [];
+            let operation = '';
+            let correctAnswer = 0;
+
+            if (level === 1) { // Level 1: Addition
+                for (let i = 0; i < numbersCount; i++) {
+                    const num = Math.floor(Math.random() * 10);
+                    numbers.push(num);
+                    correctAnswer += num;
+                }
+                operation = numbers.join('<br> + <br>') + '<br>'; // Vertical display
+            } else if (level === 2) { // Level 2: Addition and Subtraction
+                // Generate the first number ensuring it's not negative
+                let firstNum = Math.floor(Math.random() * 10);
+                numbers.push(firstNum);
+                correctAnswer = firstNum;
+
+                for (let i = 1; i < numbersCount; i++) {
+                    const num = Math.floor(Math.random() * 10);
+                    numbers.push(num);
+                    // Determine if we should add or subtract
+                    if (correctAnswer - num < 0) {
+                        operation += ` + ${num}<br>`;
+                        correctAnswer += num; // Change to addition if result is negative
+                    } else {
+                        operation += ` - ${num}<br>`;
+                        correctAnswer -= num;
+                    }
+                }
+                operation = numbers[0] + '<br>' + operation; // Start with the first number
+            } else if (level === 3) { // Level 3: Multiplication
+                for (let i = 0; i < 2; i++) {
+                    const num = Math.floor(Math.random() * 10);
+                    numbers.push(num);
+                }
+                correctAnswer = numbers[0] * numbers[1];
+                operation = `${numbers[0]}<br> * <br>${numbers[1]}<br>`; // Vertical display
+            } else if (level === 4) { // Level 4: Division
+                const divisor = Math.floor(Math.random() * 9) + 1; // Avoid division by zero
+                const quotient = Math.floor(Math.random() * 10);
+                correctAnswer = quotient * divisor; // Ensure the result is an integer
+                operation = `${correctAnswer}<br> / <br>${divisor}<br>`; // Vertical display
+            }
+
+            document.getElementById('correctAnswer').value = correctAnswer;
+            const numberElement = document.createElement('span');
+            numberElement.className = 'number';
+            numberElement.innerHTML = operation; // Use innerHTML to allow <br> tags
+            questionElement.appendChild(numberElement);
+        }
+
+        function checkAnswer() {
+            const userAnswer = parseInt(document.getElementById('userAnswer').value);
+            const correctAnswer = parseInt(document.getElementById('correctAnswer').value);
+
+            if (userAnswer === correctAnswer) {
+                correctAnswers++;
+            }
+            currentQuestion++;
+
+            if (currentQuestion < totalQuestions) {
+                generateQuestion();
+                document.getElementById('userAnswer').value = '';
+            } else {
+                endQuiz();
+            }
+        }
+
+        function startTimer() {
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').innerText = `Time left: ${Math.floor(timeLeft / 60)}:${timeLeft % 60 < 10 ? '0' : ''}${timeLeft % 60}`;
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    endQuiz();
+                }
+            }, 1000);
+            document.getElementById('timer').style.display = 'block';
+        }
+
+        function endQuiz() {
+            clearInterval(timerInterval);
+            document.getElementById('question').style.display = 'none';
+            document.getElementById('timer').style.display = 'none';
+            document.getElementById('userAnswer').style.display = 'none';
+            document.getElementById('submitBtn').style.display = 'none';
+            document.getElementById('endQuizBtn').style.display = 'none'; // Hide end quiz button
+            document.getElementById('result').innerText = `Quiz finished! You answered ${correctAnswers} out of ${totalQuestions} questions correctly.`;
+            document.getElementById('result').style.display = 'block';
+            showSaveButton();
+            showHomeButton(); // Show the home button
+        }
+
+        function showSaveButton() {
+            const saveButton = document.createElement('button');
+            saveButton.innerText = 'Save Results as PDF';
+            saveButton.onclick = saveResults;
+            document.body.appendChild(saveButton);
+        }
+
+        function showHomeButton() {
+            const homeButton = document.createElement('button');
+            homeButton.innerText = 'Return to Home';
+            homeButton.onclick = function() {
+                window.location.reload(); // Reload the page to return to the home
+            };
+            document.body.appendChild(homeButton);
+        }
+
+        async function saveResults() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const name = document.getElementById('fullName').value;
+            const birthDate = document.getElementById('birthDate').value;
+            const state = document.getElementById('state').value;
+            const country = document.getElementById('country').value;
+            const coach = document.getElementById('coach').value;
+            const score = correctAnswers;
+
+            // احسب الوقت الكلي المدخل من قبل المستخدم
+            const timeInput = parseInt(document.getElementById('timeInput').value);
+            const totalTimeInSeconds = timeInput * 60; // الوقت الكلي بالثواني
+
+            let completionTime;
+
+            if (timeLeft <= 0) {
+                completionTime = totalTimeInSeconds; // إذا انتهى الوقت، استخدم الوقت الكلي المدخل
+            } else {
+                completionTime = totalTimeInSeconds - timeLeft; // الوقت المستغرق
+            }
+
+            const minutes = Math.floor(completionTime / 60);
+            const seconds = completionTime % 60;
+
+            // Add content to PDF
+            doc.setFontSize(20);
+            doc.text("Exam results", 10, 10);
+            doc.setFontSize(20);
+            doc.text(`Full name: ${name}`, 10, 30);
+            doc.text(`Date of birth: ${birthDate}`, 10, 40);
+            doc.text(`State: ${state}`, 10, 50);
+            doc.text(`Country: ${country}`, 10, 60);
+            doc.text(`Coach: ${coach}`, 10, 70);
+            doc.text(`Mark: ${score} out of ${totalQuestions}`, 10, 80);
+            doc.text(`Completion time: ${minutes} minutes and ${seconds} seconds`, 10, 90);
+
+            // Save the file
+            doc.save("quiz_results.pdf");
+        }
+
+        function generateOperationsPDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            const name = document.getElementById('fullName').value;
+            const operationsCount = parseInt(document.getElementById('operationsCount').value);
+            const numbersCount = parseInt(document.getElementById('numbersCount').value);
+
+            doc.setFontSize(20);
+            doc.text("Generated Operations", 10, 10);
+            doc.setFontSize(12);
+
+            let yPosition = 20; // Starting Y position for the first operation
+            let columnWidth = 90; // Width for each column
+            let operationsPerPage = 27; // Number of operations per page
+            let operationsInCurrentPage = 0; // Track operations in the current page
+
+            for (let i = 0; i < operationsCount; i++) {
+                const numbers = [];
+                let sum = 0;
+
+                for (let j = 0; j < numbersCount; j++) {
+                    const num = Math.floor(Math.random() * 10);
+                    numbers.push(num);
+                    sum += num;
+                }
+
+                const operationString = numbers.join('<br> + <br>') + '<br>'; // Placeholder for answer
+
+                // Calculate the position for the current operation
+                let column = Math.floor(i / operationsPerPage) % 2; // Determine column (0 or 1)
+                let row = i % operationsPerPage; // Determine row in the current column
+                let xPosition = 10 + column * columnWidth; // X position based on column
+                let yPosition = 20 + (row * 10); // Y position based on row
+
+                doc.text(operationString, xPosition, yPosition); // Print operation
+
+                // Check if we need to add a new page
+                if (row === operationsPerPage - 1 && column === 1) { // If the second column is filled
+                    doc.addPage();
+                }
+            }
+
+            // Save the file
+            doc.save("generated_operations.pdf");
+        }
+
+        function loadCounter() {
+            fetch('counter.php')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('counter').innerText = `Page views: ${data}`;
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        window.onload = function() {
+            loadCounter();
+            document.getElementById('userAnswer').addEventListener('keydown', function(event) {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    checkAnswer();
+                }
+            });
+        };
+    </script>
+</head>
+<body>
+    <h1>AMAZING SOROBAN QUIZ</h1>
+    <div id="formContainer">
+        <input type="text" id="fullName" placeholder="Full Name" />
+        <input type="date" id="birthDate" placeholder="Date of Birth" />
+        <input type="text" id="state" placeholder="State" />
+        <input type="text" id="country" placeholder="Country" />
+        <input type="text" id="coach" placeholder="Coach" />
+        <input type="number" id="operationsCount" placeholder="Number of Operations" min="1" />
+        <input type="number" id="timeInput" placeholder="Time in Minutes" min="1" />
+        <select id="numbersCount">
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="10">10</option>
+        </select>
+        <select id="level">
+            <option value="1">Level 1: Addition</option>
+            <option value="2">Level 2: Addition and Subtraction</option>
+            <option value="3">Level 3: Multiplication</option>
+            <option value="4">Level 4: Division</option>
+        </select>
+        <button onclick="startQuiz()">Start Quiz</button>
+        <button onclick="generateOperationsPDF()">Generate Operations PDF</button>
+    </div>
+    <div id="timer"></div>
+    <div id="question"></div>
+    <input type="number" id="userAnswer" placeholder="Enter your answer" style="display:none; width: 50%; margin: 0 auto;" />
+    <button id="submitBtn" onclick="checkAnswer()" style="display:none;">Submit Answer</button>
+    <button id="endQuizBtn" onclick="endQuiz()" style="display:none;">End Quiz</button>
+    <div id="result" style="display:none;"></div>
+    <input type="hidden" id="correctAnswer" />
+    <div id="counter">Page views: 0</div>
+</body>
+</html>
